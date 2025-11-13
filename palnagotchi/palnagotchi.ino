@@ -3,6 +3,8 @@
 #endif
 
 #include "M5Unified.h"
+#include "EEPROM.h"
+#include "esp_system.h"
 #include "ui.h"
 
 #define STATE_INIT 0
@@ -10,6 +12,7 @@
 #define STATE_HALT 255
 
 uint8_t state;
+char session_id[18] = "";
 
 void initM5() {
   auto cfg = M5.config();
@@ -22,12 +25,24 @@ void initM5() {
   #endif
 }
 
+void setRandomSessionId() {
+  randomSeed(esp_random());
+  const char charset[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+  for (int i = 0; i < 17; i++) {
+    session_id[i] = charset[random(0, sizeof(charset) - 1)];
+  }
+
+  session_id[17] = '\0';
+}
+
 void setup() {
   initM5();
   initMood();
   initPwngrid();
   initUi();
   state = STATE_INIT;
+  setRandomSessionId();
 }
 
 uint8_t current_channel = 1;
@@ -48,7 +63,7 @@ void advertise(uint8_t channel) {
     last_mood_switch = millis();
   }
 
-  esp_err_t result = pwngridAdvertise(channel, getCurrentMoodFace());
+  esp_err_t result = pwngridAdvertise(channel, session_id, getCurrentMoodFace());
 
   if (result == ESP_ERR_WIFI_IF) {
     setMood(MOOD_BROKEN, "", "Error: invalid interface", true);

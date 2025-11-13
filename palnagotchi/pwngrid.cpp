@@ -30,7 +30,7 @@ const int raw_beacon_len = sizeof(pwngrid_beacon_raw);
 esp_err_t esp_wifi_80211_tx(wifi_interface_t ifx, const void *buffer, int len,
                             bool en_sys_seq);
 
-esp_err_t pwngridAdvertise(uint8_t channel, String face) {
+esp_err_t pwngridAdvertise(uint8_t channel, char session_id[18], String face) {
   JsonDocument pal_json;
   String pal_json_str = "";
 
@@ -43,7 +43,7 @@ esp_err_t pwngridAdvertise(uint8_t channel, String face) {
       "32e9f315e92d974342c93d0fd952a914bfb4e6838953536ea6f63d54db6b9610";
   pal_json["pwnd_run"] = 0;
   pal_json["pwnd_tot"] = 0;
-  pal_json["session_id"] = "a2:00:64:e6:0b:8b";
+  pal_json["session_id"] = session_id;
   pal_json["timestamp"] = 0;
   pal_json["uptime"] = 0;
   pal_json["version"] = "1.8.4";
@@ -95,11 +95,10 @@ esp_err_t pwngridAdvertise(uint8_t channel, String face) {
 }
 
 void pwngridAddPeer(JsonDocument &json, signed int rssi) {
-  String identity = json["identity"].as<String>();
-
   for (uint8_t i = 0; i < pwngrid_friends_tot; i++) {
     // Check if peer identity is already in peers array
-    if (pwngrid_peers[i].identity == identity) {
+    if (pwngrid_peers[i].identity == json["identity"].as<String>() &&
+        pwngrid_peers[i].session_id == json["session_id"].as<String>()) {
       pwngrid_peers[i].last_ping = millis();
       pwngrid_peers[i].gone = false;
       pwngrid_peers[i].rssi = rssi;
@@ -115,7 +114,7 @@ void pwngridAddPeer(JsonDocument &json, signed int rssi) {
   pwngrid_peers[pwngrid_friends_tot].epoch = json["epoch"].as<int>();
   pwngrid_peers[pwngrid_friends_tot].grid_version =
       json["grid_version"].as<String>();
-  pwngrid_peers[pwngrid_friends_tot].identity = identity;
+  pwngrid_peers[pwngrid_friends_tot].identity = json["identity"].as<String>();
   pwngrid_peers[pwngrid_friends_tot].pwnd_run = json["pwnd_run"].as<int>();
   pwngrid_peers[pwngrid_friends_tot].pwnd_tot = json["pwnd_tot"].as<int>();
   pwngrid_peers[pwngrid_friends_tot].session_id =
@@ -211,8 +210,6 @@ void pwnSnifferCallback(void *buf, wifi_promiscuous_pkt_type_t type) {
         DeserializationError result = deserializeJson(sniffed_json, essid);
 
         if (result == DeserializationError::Ok) {
-          // Serial.println("\nSuccessfully parsed json");
-          // serializeJson(json, Serial);  // ArduinoJson v6
           pwngridAddPeer(sniffed_json, snifferPacket->rx_ctrl.rssi);
         } else if (result == DeserializationError::IncompleteInput) {
           Serial.println("Deserialization error: incomplete input");
