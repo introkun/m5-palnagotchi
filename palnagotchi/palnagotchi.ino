@@ -11,7 +11,7 @@
 #define STATE_WAKE 1
 #define STATE_HALT 255
 
-uint8_t state;
+uint8_t state = STATE_INIT;
 char session_id[18] = "";
 
 void initM5() {
@@ -37,12 +37,13 @@ void setRandomSessionId() {
 }
 
 void setup() {
+  EEPROM.begin(256);
+  Serial.begin(9600);
+  setRandomSessionId();
   initM5();
   initMood();
   initPwngrid();
   initUi();
-  state = STATE_INIT;
-  setRandomSessionId();
 }
 
 uint8_t current_channel = 1;

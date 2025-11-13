@@ -1,6 +1,7 @@
 #ifdef ARDUINO_M5STACK_CARDPUTER
   #include "M5Cardputer.h"
 #endif
+#include "EEPROM.h"
 #include "mood.h"
 #include "pwngrid.h"
 

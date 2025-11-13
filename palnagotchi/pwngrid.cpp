@@ -1,11 +1,11 @@
 #include "pwngrid.h"
 
 uint8_t pwngrid_friends_tot = 0;
+uint8_t pwngrid_friends_run = 0;
 pwngrid_peer pwngrid_peers[255];
 String pwngrid_last_friend_name = "";
 
-uint8_t getPwngridTotalPeers() { return EEPROM.read(0) + pwngrid_friends_tot; }
-uint8_t getPwngridRunTotalPeers() { return pwngrid_friends_tot; }
+uint8_t getPwngridRunTotalPeers() { return pwngrid_friends_run; }
 String getPwngridLastFriendName() { return pwngrid_last_friend_name; }
 pwngrid_peer *getPwngridPeers() { return pwngrid_peers; }
 
@@ -95,7 +95,7 @@ esp_err_t pwngridAdvertise(uint8_t channel, char session_id[18], String face) {
 }
 
 void pwngridAddPeer(JsonDocument &json, signed int rssi) {
-  for (uint8_t i = 0; i < pwngrid_friends_tot; i++) {
+  for (uint8_t i = 0; i < pwngrid_friends_run; i++) {
     // Check if peer identity is already in peers array
     if (pwngrid_peers[i].identity == json["identity"].as<String>() &&
         pwngrid_peers[i].session_id == json["session_id"].as<String>()) {
@@ -106,31 +106,35 @@ void pwngridAddPeer(JsonDocument &json, signed int rssi) {
     }
   }
 
-  pwngrid_peers[pwngrid_friends_tot].rssi = rssi;
-  pwngrid_peers[pwngrid_friends_tot].last_ping = millis();
-  pwngrid_peers[pwngrid_friends_tot].gone = false;
-  pwngrid_peers[pwngrid_friends_tot].name = json["name"].as<String>();
-  pwngrid_peers[pwngrid_friends_tot].face = json["face"].as<String>();
-  pwngrid_peers[pwngrid_friends_tot].epoch = json["epoch"].as<int>();
-  pwngrid_peers[pwngrid_friends_tot].grid_version =
+  pwngrid_peers[pwngrid_friends_run].rssi = rssi;
+  pwngrid_peers[pwngrid_friends_run].last_ping = millis();
+  pwngrid_peers[pwngrid_friends_run].gone = false;
+  pwngrid_peers[pwngrid_friends_run].name = json["name"].as<String>();
+  pwngrid_peers[pwngrid_friends_run].face = json["face"].as<String>();
+  pwngrid_peers[pwngrid_friends_run].epoch = json["epoch"].as<int>();
+  pwngrid_peers[pwngrid_friends_run].grid_version =
       json["grid_version"].as<String>();
-  pwngrid_peers[pwngrid_friends_tot].identity = json["identity"].as<String>();
-  pwngrid_peers[pwngrid_friends_tot].pwnd_run = json["pwnd_run"].as<int>();
-  pwngrid_peers[pwngrid_friends_tot].pwnd_tot = json["pwnd_tot"].as<int>();
-  pwngrid_peers[pwngrid_friends_tot].session_id =
+  pwngrid_peers[pwngrid_friends_run].identity = json["identity"].as<String>();
+  pwngrid_peers[pwngrid_friends_run].pwnd_run = json["pwnd_run"].as<int>();
+  pwngrid_peers[pwngrid_friends_run].pwnd_tot = json["pwnd_tot"].as<int>();
+  pwngrid_peers[pwngrid_friends_run].session_id =
       json["session_id"].as<String>();
-  pwngrid_peers[pwngrid_friends_tot].timestamp = json["timestamp"].as<int>();
-  pwngrid_peers[pwngrid_friends_tot].uptime = json["uptime"].as<int>();
-  pwngrid_peers[pwngrid_friends_tot].version = json["version"].as<String>();
-  pwngrid_last_friend_name = pwngrid_peers[pwngrid_friends_tot].name;
-  pwngrid_friends_tot++;
-  EEPROM.write(0, pwngrid_friends_tot);
+  pwngrid_peers[pwngrid_friends_run].timestamp = json["timestamp"].as<int>();
+  pwngrid_peers[pwngrid_friends_run].uptime = json["uptime"].as<int>();
+  pwngrid_peers[pwngrid_friends_run].version = json["version"].as<String>();
+  pwngrid_last_friend_name = pwngrid_peers[pwngrid_friends_run].name;
+  pwngrid_friends_run++;
+  
+  // Read total peers from EEPROM and increment it
+  EEPROM.get(0, pwngrid_friends_tot);
+  EEPROM.put(0, pwngrid_friends_tot + 1);
+  EEPROM.commit();
 }
 
 const int away_threshold = 120000;
 
 void checkPwngridGoneFriends() {
-  for (uint8_t i = 0; i < pwngrid_friends_tot; i++) {
+  for (uint8_t i = 0; i < pwngrid_friends_run; i++) {
     // Check if peer is away for more then
     int away_secs = pwngrid_peers[i].last_ping - millis();
     if (away_secs > away_threshold) {
@@ -143,7 +147,7 @@ void checkPwngridGoneFriends() {
 signed int getPwngridClosestRssi() {
   signed int closest = -1000;
 
-  for (uint8_t i = 0; i < pwngrid_friends_tot; i++) {
+  for (uint8_t i = 0; i < pwngrid_friends_run; i++) {
     // Check if peer is away for more then
     if (pwngrid_peers[i].gone == false && pwngrid_peers[i].rssi > closest) {
       closest = pwngrid_peers[i].rssi;

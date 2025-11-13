@@ -27,7 +27,6 @@ void initPwngrid();
 esp_err_t pwngridAdvertise(uint8_t channel, char session_id[18], String face);
 pwngrid_peer* getPwngridPeers();
 uint8_t getPwngridRunTotalPeers();
-uint8_t getPwngridTotalPeers();
 String getPwngridLastFriendName();
 signed int getPwngridClosestRssi();
 void checkPwngridGoneFriends();

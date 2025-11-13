@@ -130,7 +130,9 @@ void updateUi(bool show_toolbars) {
   bool mood_broken = isCurrentMoodBroken();
 
   drawTopCanvas();
-  drawBottomCanvas(getPwngridRunTotalPeers(), getPwngridTotalPeers(),
+  uint8_t total_peers = 0;
+  EEPROM.get(0, total_peers);
+  drawBottomCanvas(getPwngridRunTotalPeers(), total_peers,
                    getPwngridLastFriendName(), getPwngridClosestRssi());
 
   if (menu_open) {
