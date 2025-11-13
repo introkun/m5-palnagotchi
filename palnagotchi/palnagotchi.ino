@@ -1,4 +1,7 @@
-#include "M5Cardputer.h"
+#ifdef ARDUINO_M5STACK_CARDPUTER
+  #include "M5Cardputer.h"
+#endif
+
 #include "M5Unified.h"
 #include "ui.h"
 
@@ -10,14 +13,18 @@ uint8_t state;
 
 void initM5() {
   auto cfg = M5.config();
-  M5.begin();
+  M5.begin(cfg);
   M5.Display.begin();
-  M5Cardputer.begin(cfg);
-  M5Cardputer.Keyboard.begin();
+
+  #ifdef ARDUINO_M5STACK_CARDPUTER
+    M5Cardputer.begin(cfg);
+    M5Cardputer.Keyboard.begin();
+  #endif
 }
 
 void setup() {
   initM5();
+  initMood();
   initPwngrid();
   initUi();
   state = STATE_INIT;
@@ -57,7 +64,9 @@ void advertise(uint8_t channel) {
 
 void loop() {
   M5.update();
-  M5Cardputer.update();
+  #ifdef ARDUINO_M5STACK_CARDPUTER
+    M5Cardputer.update();
+  #endif
 
   if (state == STATE_HALT) {
     return;

@@ -240,6 +240,9 @@ const wifi_promiscuous_filter_t filter = {
     .filter_mask = WIFI_PROMIS_FILTER_MASK_MGMT | WIFI_PROMIS_FILTER_MASK_DATA};
 
 void initPwngrid() {
+  // Disable WiFi logging
+  esp_log_level_set("wifi", ESP_LOG_NONE);
+
   wifi_init_config_t WIFI_INIT_CONFIG = WIFI_INIT_CONFIG_DEFAULT();
   esp_wifi_init(&WIFI_INIT_CONFIG);
   esp_wifi_set_storage(WIFI_STORAGE_RAM);
