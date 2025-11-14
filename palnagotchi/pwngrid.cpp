@@ -39,6 +39,7 @@ esp_err_t pwngridAdvertise(uint8_t channel, char session_id[18], String face) {
   pal_json["face"] = face;
   pal_json["epoch"] = 1;
   pal_json["grid_version"] = "1.10.3";
+  // TODO: generate valid pubkey for identity
   pal_json["identity"] =
       "32e9f315e92d974342c93d0fd952a914bfb4e6838953536ea6f63d54db6b9610";
   pal_json["pwnd_run"] = 0;

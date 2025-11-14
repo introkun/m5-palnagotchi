@@ -1,8 +1,17 @@
+#include "M5Unified.h"
+
 #ifdef ARDUINO_M5STACK_CARDPUTER
   #include "M5Cardputer.h"
 #endif
 
-#include "M5Unified.h"
+#ifdef ARDUINO_M5STACK_DIAL
+  #include "M5Dial.h"
+#endif
+
+#ifdef ARDUINO_M5STACK_DINMETER
+  #include "M5DinMeter.h"
+#endif
+
 #include "EEPROM.h"
 #include "esp_system.h"
 #include "ui.h"
@@ -20,11 +29,19 @@ void initM5() {
   M5.Display.begin();
 
   #ifdef ARDUINO_M5STACK_CARDPUTER
-    M5Cardputer.begin(cfg);
-    M5Cardputer.Keyboard.begin();
+    M5Cardputer.begin(cfg, true);
+  #endif
+
+  #ifdef ARDUINO_M5STACK_DIAL
+    M5Dial.begin(cfg, true, false);
+  #endif
+
+  #ifdef ARDUINO_M5STACK_DINMETER
+    DinMeter.begin(cfg, true);
   #endif
 }
 
+// TODO: store SID in EEPROM
 void setRandomSessionId() {
   randomSeed(esp_random());
   const char charset[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -80,6 +97,7 @@ void advertise(uint8_t channel) {
 
 void loop() {
   M5.update();
+  
   #ifdef ARDUINO_M5STACK_CARDPUTER
     M5Cardputer.update();
   #endif

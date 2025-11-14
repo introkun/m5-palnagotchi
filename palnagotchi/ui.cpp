@@ -40,6 +40,7 @@ void initUi() {
   if (M5.Display.width() < M5.Display.height()) {
     M5.Display.setRotation(M5.Display.getRotation() ^ 1);
   }
+
   M5.Display.setTextFont(&fonts::Font0);
   M5.Display.setTextSize(1);
   M5.Display.fillScreen(TFT_BLACK);
@@ -55,6 +56,11 @@ void initUi() {
   canvas_peers_menu_h = display_h * .8;
   canvas_peers_menu_w = display_w * .8;
 
+  // M5Core can't render main canvas at full height.
+  // This program is not very resource intensive, at least it shouldn't be.
+  // This is the maximum height I was able to render right now.
+  if (M5.getBoard() == m5::board_t::board_M5Stack) canvas_h = 170;
+
   canvas_top.createSprite(display_w, canvas_top_h);
   canvas_bot.createSprite(display_w, canvas_bot_h);
   canvas_main.createSprite(display_w, canvas_h);
@@ -67,8 +73,6 @@ bool toggleMenuBtnPressed() {
     return M5Cardputer.BtnA.isPressed() ||
           (keyboard_changed && (M5Cardputer.Keyboard.isKeyPressed('m') ||
                                 M5Cardputer.Keyboard.isKeyPressed('`')));
-  #elif defined(ARDUINO_M5STACK_STICKC) || defined(ARDUINO_M5STACK_STICKC_PLUS) || defined(ARDUINO_M5STACK_STICKC_PLUS2)
-    return M5.BtnA.wasHold();
   #else
     return M5.BtnA.wasHold();
   #endif
@@ -92,6 +96,10 @@ bool isNextPressed() {
                                   M5Cardputer.Keyboard.isKeyPressed(KEY_TAB));
   #elif defined(ARDUINO_M5STACK_STICKC) || defined(ARDUINO_M5STACK_STICKC_PLUS) || defined(ARDUINO_M5STACK_STICKC_PLUS2)
     return M5.BtnPWR.wasClicked();
+  #elif defined(ARDUINO_M5STACK_DIAL)
+    return M5Dial.Encoder.readAndReset() > 0;
+  #elif defined(ARDUINO_M5STACK_DINMETER)
+    return DinMeter.Encoder.readAndReset() > 0;
   #else
     return M5.BtnA.wasDecideClickCount() && M5.BtnA.getClickCount() == 2;
   #endif
@@ -99,10 +107,14 @@ bool isNextPressed() {
 
 bool isPrevPressed() {
   #if defined(ARDUINO_M5STACK_CARDPUTER)
-      return keyboard_changed && (M5Cardputer.Keyboard.isKeyPressed(',') ||
-                                  M5Cardputer.Keyboard.isKeyPressed(';'));
+    return keyboard_changed && (M5Cardputer.Keyboard.isKeyPressed(',') ||
+                                M5Cardputer.Keyboard.isKeyPressed(';'));
   #elif defined(ARDUINO_M5STACK_STICKC) || defined(ARDUINO_M5STACK_STICKC_PLUS) || defined(ARDUINO_M5STACK_STICKC_PLUS2)
-      return M5.BtnB.wasClicked();
+    return M5.BtnB.wasClicked();
+  #elif defined(ARDUINO_M5STACK_DIAL)
+    return M5Dial.Encoder.readAndReset() < 0;
+  #elif defined(ARDUINO_M5STACK_DINMETER)
+    return DinMeter.Encoder.readAndReset() < 0;
   #else
     return M5.BtnA.wasDecideClickCount() && M5.BtnA.getClickCount() == 3;
   #endif
@@ -128,10 +140,11 @@ void updateUi(bool show_toolbars) {
   String mood_face = getCurrentMoodFace();
   String mood_phrase = getCurrentMoodPhrase();
   bool mood_broken = isCurrentMoodBroken();
-
-  drawTopCanvas();
   uint8_t total_peers = 0;
   EEPROM.get(0, total_peers);
+
+  M5.Display.startWrite();
+  drawTopCanvas();
   drawBottomCanvas(getPwngridRunTotalPeers(), total_peers,
                    getPwngridLastFriendName(), getPwngridClosestRssi());
 
@@ -141,7 +154,6 @@ void updateUi(bool show_toolbars) {
     drawMood(mood_face, mood_phrase, mood_broken);
   }
 
-  M5.Display.startWrite();
   if (show_toolbars) {
     canvas_top.pushSprite(0, 0);
     canvas_bot.pushSprite(0, canvas_top_h + canvas_h);
@@ -172,24 +184,37 @@ void drawTopCanvas() {
   canvas_top.setTextColor(GREEN);
   canvas_top.setColor(GREEN);
   canvas_top.setTextDatum(top_left);
-  canvas_top.drawString("CH *", 0, 3);
 
-  canvas_top.setTextDatum(top_right);
+  // Hide CH on M5Dial since it can't be seen anyway
+  #if !defined(ARDUINO_M5STACK_DIAL)
+    canvas_top.drawString("CH *", 0, 5);
+  #endif 
+
   unsigned long ellapsed = millis() / 1000;
   int8_t h = ellapsed / 3600;
   int sr = ellapsed % 3600;
   int8_t m = sr / 60;
   int8_t s = sr % 60;
-  if (display_w > 128) {
-    char right_str[50] = "UPS 0%  UP 00:00:00";
+  char right_str[50] = "";
+
+  if (display_w > 128 && M5.Power.getBatteryVoltage() > 0) {
     sprintf(right_str, "UPS %i%% UP %02d:%02d:%02d", (int)lastBatteryLevel, h, m,
           s);
-    canvas_top.drawString(right_str, display_w, 3);
+    canvas_top.setTextDatum(top_right);
+    canvas_top.drawString(right_str, display_w, 5);
   } else {
-    char right_str[50] = "UP 00:00:00";
     sprintf(right_str, "UP %02d:%02d:%02d", h, m, s);
-    canvas_top.drawString(right_str, display_w, 3);
+
+    #ifdef ARDUINO_M5STACK_DIAL
+      // Center text on M5Dial
+      canvas_top.setTextDatum(top_center);
+      canvas_top.drawString(right_str, canvas_center_x, 5);
+    #else
+      canvas_top.setTextDatum(top_right);
+      canvas_top.drawString(right_str, display_w, 5);
+    #endif
   }
+  
   canvas_top.drawLine(0, canvas_top_h - 1, display_w, canvas_top_h - 1);
 }
 
@@ -217,6 +242,10 @@ void drawBottomCanvas(uint8_t friends_run, uint8_t friends_tot,
   canvas_bot.setColor(GREEN);
   canvas_bot.setTextDatum(top_left);
 
+  #ifdef ARDUINO_M5STACK_DIAL
+    canvas_bot.setTextDatum(top_center);
+  #endif
+
   String rssi_bars = getRssiBars(rssi);
   char stats[64];
   if (friends_run > 0) {
@@ -226,7 +255,12 @@ void drawBottomCanvas(uint8_t friends_run, uint8_t friends_tot,
     sprintf(stats, "FRND 0 (0)");
   }
 
-  canvas_bot.drawString(stats, 0, 5);
+  uint8_t x_pos = 0;
+  #ifdef ARDUINO_M5STACK_DIAL
+    x_pos = canvas_center_x;
+  #endif
+
+  canvas_bot.drawString(stats, x_pos, 5);
   canvas_bot.setTextDatum(top_right);
   if (display_w > 128) {
     canvas_bot.drawString("NOT AI", display_w, 5);
@@ -332,28 +366,28 @@ void drawMenu() {
   }
 
   switch (menu_current_cmd) {
-  case 0:
-    if (isOkPressed()) {
-      menu_current_cmd = main_menu[menu_current_opt].command;
-      menu_current_opt = 0;
-    }
-    drawMainMenu();
-    break;
-  case 2:
-    drawNearbyMenu();
-    break;
-  case 4:
-    if (isOkPressed()) {
-      menu_current_cmd = settings_menu[menu_current_opt].command;
-      menu_current_opt = 0;
-    }
-    drawSettingsMenu();
-    break;
-  case 8:
-    drawAboutMenu();
-    break;
-  default:
-    drawMainMenu();
-    break;
+    case 0:
+      if (isOkPressed()) {
+        menu_current_cmd = main_menu[menu_current_opt].command;
+        menu_current_opt = 0;
+      }
+      drawMainMenu();
+      break;
+    case 2:
+      drawNearbyMenu();
+      break;
+    case 4:
+      if (isOkPressed()) {
+        menu_current_cmd = settings_menu[menu_current_opt].command;
+        menu_current_opt = 0;
+      }
+      drawSettingsMenu();
+      break;
+    case 8:
+      drawAboutMenu();
+      break;
+    default:
+      drawMainMenu();
+      break;
   }
 }

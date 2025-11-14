@@ -1,6 +1,15 @@
 #ifdef ARDUINO_M5STACK_CARDPUTER
   #include "M5Cardputer.h"
 #endif
+
+#ifdef ARDUINO_M5STACK_DIAL
+  #include "M5Dial.h"
+#endif
+
+#ifdef ARDUINO_M5STACK_DINMETER
+  #include "M5DinMeter.h"
+#endif
+
 #include "EEPROM.h"
 #include "mood.h"
 #include "pwngrid.h"
