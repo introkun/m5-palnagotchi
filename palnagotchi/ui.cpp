@@ -395,21 +395,23 @@ void drawBrightnessMenu(uint8_t val) {
 }
 
 void drawMenu() {
-  if (isNextPressed()) {
-    menu_current_opt++;
-    if (menu_current_cmd == 0 && menu_current_opt >= main_menu_len)
-      menu_current_opt = 0;
-    else if (menu_current_cmd == 4 && menu_current_opt >= settings_menu_len)
-      menu_current_opt = 0;
-  }
+  if (menu_current_cmd == 0 || menu_current_cmd == 2 || menu_current_cmd == 4) {
+    if (isNextPressed()) {
+      menu_current_opt++;
+      if (menu_current_cmd == 0 && menu_current_opt >= main_menu_len)
+        menu_current_opt = 0;
+      else if (menu_current_cmd == 4 && menu_current_opt >= settings_menu_len)
+        menu_current_opt = 0;
+    }
 
-  if (isPrevPressed()) {
-    if (menu_current_opt > 0)
-      menu_current_opt--;
-    else if (menu_current_cmd == 0)
-      menu_current_opt = main_menu_len - 1;
-    else if (menu_current_cmd == 4)
-      menu_current_opt = settings_menu_len - 1;
+    if (isPrevPressed()) {
+      if (menu_current_opt > 0)
+        menu_current_opt--;
+      else if (menu_current_cmd == 0)
+        menu_current_opt = main_menu_len - 1;
+      else if (menu_current_cmd == 4)
+        menu_current_opt = settings_menu_len - 1;
+    }
   }
 
   switch (menu_current_cmd) {

@@ -13,6 +13,7 @@ void setPwnName(String new_name) {
   for (int i = 0; i < 26; i++) {
     EEPROM.write(2 + i, pwn_name[i]);
   }
+  EEPROM.write(1, 0x42); // Magic byte to indicate name is set
   EEPROM.commit();
 }
 
@@ -248,19 +249,18 @@ const wifi_promiscuous_filter_t filter = {
     .filter_mask = WIFI_PROMIS_FILTER_MASK_MGMT | WIFI_PROMIS_FILTER_MASK_DATA};
 
 void initPwngrid() {
-  char stored_name[26];
-  bool valid = true;
-  for (int i = 0; i < 26; i++) {
-    stored_name[i] = EEPROM.read(2 + i);
-    if (i == 0 && (stored_name[i] == 0 || stored_name[i] == 255)) {
-      valid = false;
-      break;
+  if (EEPROM.read(1) == 0x42) {
+    char stored_name[26];
+    for (int i = 0; i < 26; i++) {
+      stored_name[i] = EEPROM.read(2 + i);
     }
-  }
-  if (valid) {
     memcpy(pwn_name, stored_name, 26);
     pwn_name[25] = 0; // Ensure null termination
   }
+
+  // Load total friends
+  pwngrid_friends_tot = EEPROM.read(0);
+  if (pwngrid_friends_tot == 255) pwngrid_friends_tot = 0;
 
   // Disable WiFi logging
   esp_log_level_set("wifi", ESP_LOG_NONE);
