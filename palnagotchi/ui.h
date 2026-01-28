@@ -14,6 +14,8 @@
 #include "mood.h"
 #include "pwngrid.h"
 
+#define VERSION "v1.3"
+
 void initUi();
 void wakeUp();
 void drawMood(String face, String phrase, bool broken = false);

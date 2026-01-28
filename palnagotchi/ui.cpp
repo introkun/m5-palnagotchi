@@ -354,6 +354,10 @@ void drawAboutMenu() {
   canvas_main.qrcode("https://github.com/viniciusbo/m5-palnagotchi",
                      (display_w / 2) - (display_h * 0.3), PADDING,
                      display_h * 0.65);
+  canvas_main.setTextSize(1);
+  canvas_main.setTextColor(TFT_DARKGRAY);
+  canvas_main.setTextDatum(bottom_center);
+  canvas_main.drawString(VERSION, canvas_center_x, canvas_h - PADDING);
 }
 
 void drawChangeNameMenu(String name) {
