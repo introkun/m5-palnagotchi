@@ -27,6 +27,7 @@ menu settings_menu[] = {
     {"Change name", 40},
     {"Display brightness", 41},
     {"Sound", 42},
+    {"Factory reset", 43},
 };
 
 int main_menu_len = sizeof(main_menu) / sizeof(menu);
@@ -493,6 +494,29 @@ void drawMenu() {
       canvas_main.setTextSize(1);
       canvas_main.setTextDatum(bottom_center);
       canvas_main.drawString("Click A to Return", canvas_center_x, canvas_h - PADDING);
+      break;
+    case 43: // Factory reset
+      if (isOkPressed()) {
+        for (int i = 0; i < 256; i++) {
+          EEPROM.write(i, 255);
+        }
+        EEPROM.commit();
+        ESP.restart();
+      } else if (isPrevPressed()) {
+        menu_current_cmd = 4;
+        menu_current_opt = 0;
+      }
+      canvas_main.fillSprite(BLACK);
+      canvas_main.setTextSize(2);
+      canvas_main.setTextColor(RED);
+      canvas_main.setTextDatum(top_center);
+      canvas_main.drawString("FACTORY RESET?", canvas_center_x, PADDING);
+      canvas_main.setTextSize(1);
+      canvas_main.setTextColor(GREEN);
+      canvas_main.setTextDatum(middle_center);
+      canvas_main.drawString("This will wipe all data", canvas_center_x, canvas_h / 2);
+      canvas_main.setTextDatum(bottom_center);
+      canvas_main.drawString("A: Confirm  BACK: Cancel", canvas_center_x, canvas_h - PADDING);
       break;
     default:
       drawMainMenu();
