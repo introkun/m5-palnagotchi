@@ -516,7 +516,7 @@ void drawMenu() {
       canvas_main.setTextDatum(middle_center);
       canvas_main.drawString("This will wipe all data", canvas_center_x, canvas_h / 2);
       canvas_main.setTextDatum(bottom_center);
-      canvas_main.drawString("A: Confirm  BACK: Cancel", canvas_center_x, canvas_h - PADDING);
+      canvas_main.drawString("BACK: Cancel  A: Confirm", canvas_center_x, canvas_h - PADDING);
       break;
     default:
       drawMainMenu();
