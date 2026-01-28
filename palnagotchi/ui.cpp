@@ -402,6 +402,11 @@ void drawMenu() {
         menu_current_opt = 0;
       else if (menu_current_cmd == 4 && menu_current_opt >= settings_menu_len)
         menu_current_opt = 0;
+      else if (menu_current_cmd == 2) {
+        uint8_t total_peers = getPwngridRunTotalPeers();
+        if (total_peers == 0 || menu_current_opt >= total_peers)
+          menu_current_opt = 0;
+      }
     }
 
     if (isPrevPressed()) {
@@ -411,6 +416,13 @@ void drawMenu() {
         menu_current_opt = main_menu_len - 1;
       else if (menu_current_cmd == 4)
         menu_current_opt = settings_menu_len - 1;
+      else if (menu_current_cmd == 2) {
+        uint8_t total_peers = getPwngridRunTotalPeers();
+        if (total_peers > 0)
+          menu_current_opt = total_peers - 1;
+        else
+          menu_current_opt = 0;
+      }
     }
   }
 
