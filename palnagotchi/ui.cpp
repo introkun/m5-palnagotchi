@@ -21,7 +21,7 @@ struct menu {
   int command;
 };
 
-menu main_menu[] = {{"Nearby Pwnagotchis", 2}, {"About", 8}};
+menu main_menu[] = {{"Nearby Pwnagotchis", 2}, {"Settings", 4}, {"About", 8}};
 
 menu settings_menu[] = {
     {"Change name", 40},
@@ -35,6 +35,7 @@ int settings_menu_len = sizeof(settings_menu) / sizeof(menu);
 bool menu_open = false;
 uint8_t menu_current_cmd = 0;
 uint8_t menu_current_opt = 0;
+uint8_t current_brightness = 128;
 
 void initUi() {
   if (M5.Display.width() < M5.Display.height()) {
@@ -64,6 +65,13 @@ void initUi() {
   canvas_top.createSprite(display_w, canvas_top_h);
   canvas_bot.createSprite(display_w, canvas_bot_h);
   canvas_main.createSprite(display_w, canvas_h);
+
+  // Load brightness from EEPROM
+  uint8_t saved_brightness = EEPROM.read(28);
+  if (saved_brightness > 0) {
+    current_brightness = saved_brightness;
+  }
+  M5.Display.setBrightness(current_brightness);
 }
 
 bool keyboard_changed = false;
@@ -347,6 +355,45 @@ void drawAboutMenu() {
                      display_h * 0.65);
 }
 
+void drawChangeNameMenu(String name) {
+  canvas_main.fillSprite(BLACK);
+  canvas_main.setTextSize(2);
+  canvas_main.setTextColor(GREEN);
+  canvas_main.setTextDatum(top_center);
+  canvas_main.drawString("New Name:", canvas_center_x, PADDING);
+  canvas_main.setTextSize(3);
+  canvas_main.drawString(name, canvas_center_x, canvas_h / 2 - 10);
+
+  canvas_main.setTextSize(1);
+  canvas_main.setTextDatum(bottom_center);
+  canvas_main.drawString("NEXT: Randomize  A: Save", canvas_center_x,
+                         canvas_h - PADDING);
+}
+
+void drawBrightnessMenu(uint8_t val) {
+  canvas_main.fillSprite(BLACK);
+  canvas_main.setTextSize(2);
+  canvas_main.setTextColor(GREEN);
+  canvas_main.setTextDatum(top_center);
+  canvas_main.drawString("Brightness", canvas_center_x, PADDING);
+
+  int bar_w = display_w * 0.8;
+  int bar_h = 20;
+  int bar_x = (display_w - bar_w) / 2;
+  int bar_y = canvas_h / 2 - 10;
+
+  canvas_main.drawRect(bar_x, bar_y, bar_w, bar_h, GREEN);
+  
+  // Map 0-255 to 0-bar_w
+  int fill_w = map(val, 0, 255, 0, bar_w - 4);
+  canvas_main.fillRect(bar_x + 2, bar_y + 2, fill_w, bar_h - 4, GREEN);
+
+  canvas_main.setTextSize(1);
+  canvas_main.setTextDatum(bottom_center);
+  canvas_main.drawString("NEXT: +  PREV: -  A: Save", canvas_center_x,
+                         canvas_h - PADDING);
+}
+
 void drawMenu() {
   if (isNextPressed()) {
     menu_current_opt++;
@@ -385,6 +432,53 @@ void drawMenu() {
       break;
     case 8:
       drawAboutMenu();
+      break;
+    case 40:
+      {
+        static String temp_pwn_name = "";
+        if (temp_pwn_name == "") temp_pwn_name = getPwnName();
+
+        if (isNextPressed()) {
+          const char *names[] = {"PwnStar", "Hackey", "Glitch", "Cipher", "Zero", "PwnZor", "Ghost", "Neo"};
+          temp_pwn_name = names[random(0, 8)];
+        } else if (isOkPressed()) {
+          setPwnName(temp_pwn_name);
+          temp_pwn_name = ""; // Reset for next time
+          menu_current_cmd = 4; // Return to Settings
+          menu_current_opt = 0;
+        }
+        drawChangeNameMenu(temp_pwn_name);
+      }
+      break;
+    case 41: // Display brightness
+      if (isNextPressed()) {
+        if (current_brightness > 239) current_brightness = 255;
+        else current_brightness += 16;
+        M5.Display.setBrightness(current_brightness);
+      } else if (isPrevPressed()) {
+        if (current_brightness < 21) current_brightness = 5;
+        else current_brightness -= 16;
+        M5.Display.setBrightness(current_brightness);
+      } else if (isOkPressed()) {
+        EEPROM.write(28, current_brightness);
+        EEPROM.commit();
+        menu_current_cmd = 4;
+        menu_current_opt = 1; // Highlight "Brightness" option
+      }
+      drawBrightnessMenu(current_brightness);
+      break;
+    case 42: // Sound
+      if (isOkPressed()) {
+        menu_current_cmd = 4;
+        menu_current_opt = 0;
+      }
+      canvas_main.fillSprite(BLACK);
+      canvas_main.setTextSize(2);
+      canvas_main.setTextDatum(middle_center);
+      canvas_main.drawString("Not Implemented", canvas_center_x, canvas_h / 2);
+      canvas_main.setTextSize(1);
+      canvas_main.setTextDatum(bottom_center);
+      canvas_main.drawString("Click A to Return", canvas_center_x, canvas_h - PADDING);
       break;
     default:
       drawMainMenu();
