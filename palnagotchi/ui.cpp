@@ -154,8 +154,15 @@ void updateUi(bool show_toolbars) {
 
   M5.Display.startWrite();
   drawTopCanvas();
+  
+  String bottom_text = "";
+  if (menu_open && menu_current_cmd == 8) {
+    bottom_text = "Version: " + String(VERSION);
+  }
+
   drawBottomCanvas(getPwngridRunTotalPeers(), total_peers,
-                   getPwngridLastFriendName(), getPwngridClosestRssi());
+                   getPwngridLastFriendName(), getPwngridClosestRssi(),
+                   bottom_text);
 
   if (menu_open) {
     drawMenu();
@@ -244,11 +251,20 @@ String getRssiBars(signed int rssi) {
 }
 
 void drawBottomCanvas(uint8_t friends_run, uint8_t friends_tot,
-                      String last_friend_name, signed int rssi) {
+                      String last_friend_name, signed int rssi,
+                      String override_text) {
   canvas_bot.fillSprite(BLACK);
   canvas_bot.setTextSize(1);
   canvas_bot.setTextColor(GREEN);
   canvas_bot.setColor(GREEN);
+  
+  if (override_text != "") {
+    canvas_bot.setTextDatum(top_center);
+    canvas_bot.drawString(override_text, canvas_center_x, 5);
+    canvas_bot.drawLine(0, 0, display_w, 0);
+    return;
+  }
+
   canvas_bot.setTextDatum(top_left);
 
   #ifdef ARDUINO_M5STACK_DIAL
@@ -354,10 +370,6 @@ void drawAboutMenu() {
   canvas_main.qrcode("https://github.com/viniciusbo/m5-palnagotchi",
                      (display_w / 2) - (display_h * 0.3), PADDING,
                      display_h * 0.65);
-  canvas_main.setTextSize(1);
-  canvas_main.setTextColor(TFT_DARKGRAY);
-  canvas_main.setTextDatum(bottom_center);
-  canvas_main.drawString(VERSION, canvas_center_x, canvas_h - PADDING);
 }
 
 void drawChangeNameMenu(String name) {
